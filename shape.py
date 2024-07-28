@@ -28,7 +28,7 @@ def HeadOnlyArrow(
     position: Vector3D,
     direction: Vector3D,
 ) -> Arrow:
-    FACTOR = 10
+    FACTOR = 100
     return Arrow(
         start=position,
         end=position + direction / FACTOR,
