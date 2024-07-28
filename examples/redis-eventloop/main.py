@@ -1,9 +1,9 @@
 from manim import *
 from manim_voiceover import VoiceoverScene
-from manim_voiceover.services.openai import OpenAIService
 from manim_voiceover.services.gtts import GTTSService
 from text import OpeningTitle, ChapterTitle, Content, Small, CodeBlock
-from shape import RectWithText, FrameRect
+from shape import HeadOnlyArrow
+from utils import point_eq
 
 gtt_service = GTTSService(lang="zh-CN", tld="com", global_speed=1.25)
 
@@ -129,3 +129,34 @@ class EventLoopViz(VoiceoverScene):
             height=config.frame_height - 4,
             color=BLUE,
         )
+        arrow = HeadOnlyArrow(loop_rect.get_top(), LEFT)
+        path = VMobject().set_points(loop_rect.get_all_points())
+        
+        start_point = loop_rect.get_top()
+        end_point   = loop_rect.get_bottom() + RIGHT
+        could_move  = False
+
+        def update_arrow_position(arrow, alpha):
+            nonlocal start_point, end_point, could_move
+
+            point = path.point_from_proportion(alpha)
+            next_point = path.point_from_proportion(min(alpha + 0.01, 1))
+            if np.allclose(point, next_point): return
+            if start_point is not None and point_eq(start_point, point):
+                could_move = True
+                return
+            if end_point is not None and point_eq(end_point, point):
+                could_move = False
+                return
+            if not could_move:
+                return
+
+            vector = next_point - point
+            angle = np.arctan2(vector[1], vector[0])
+            arrow.move_to(point)
+            arrow.rotate(angle - arrow.get_angle(), about_point=point)
+
+        with self.voiceover(text="让我们把这个圆角矩形看作循环") as _:
+            self.play(Create(loop_rect), Create(arrow))
+            self.wait(1)
+            self.play(UpdateFromAlphaFunc(arrow, update_arrow_position, run_time=4))
